@@ -7,7 +7,7 @@ Dependencies:
 
 * C++11
 * Lua 
-* LuaBridge[1]
+* [LuaBridge][1]
 
 
 **Tutorials**
