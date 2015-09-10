@@ -8,28 +8,6 @@ extern "C" {
 # include "lualib.h"
 }
 
-void stackDump(lua_State *L) {
-    int i = lua_gettop(L);
-    printf(" ----------------  Stack Dump ----------------\n");
-    while (i) {
-        int t = lua_type(L, i);
-        switch (t) {
-            case LUA_TSTRING:
-                printf("%d:`%s'\n", i, lua_tostring(L, i));
-                break;
-            case LUA_TBOOLEAN:
-                printf("%d: %s\n", i, lua_toboolean(L, i) ? "true" : "false");
-                break;
-            case LUA_TNUMBER:
-                printf("%d: %g\n", i, lua_tonumber(L, i));
-                break;
-            default: printf("%d: %s\n", i, lua_typename(L, t)); break;
-        }
-        i--;
-    }
-    printf("--------------- Stack Dump Finished ---------------\n");
-}
-
 bool luah::loadScript(lua_State* L, const std::string& filename) {
     if (!(luaL_loadfile(L, filename.c_str()) || lua_pcall(L, 0, 0, 0))) {
         return true;
@@ -69,10 +47,11 @@ void luah::lua_gettostack(lua_State* L, const std::string& variableName) {
         lua_getfield(L, -1, var.c_str());
     }
 
-    // remove other tables
-    for (int i = 0; i < level; ++i) {
-        lua_remove(L, -2);
-    }
+    if (level == 0) { return; } // no need to remove anything
+
+    int tableIndex = lua_gettop(L) - level;
+    lua_replace(L, tableIndex);
+    lua_settop(L, tableIndex);
 }
 
 void luah::loadGetKeysFunction(lua_State* L) {
@@ -104,7 +83,7 @@ std::vector<std::string> luah::getTableKeys(lua_State* L, const std::string& nam
     std::vector<std::string> keys;
 
     while (lua_next(L, -2)) { // get values one by one
-        if (lua_isstring(L, -1)) {
+        if (lua_type(L, -1) == LUA_TSTRING) {
             keys.push_back(lua_tostring(L, -1));
         }
         lua_pop(L, 1);
